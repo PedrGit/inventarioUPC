@@ -31,22 +31,25 @@ if arquivo_excel:
     colunas = [
         "ID",
         "Código",
+        "Modelo Principal",
         "Descrição",
         "Referência Uso",
         "OS Fabricante",
         "Status garantia",
         "Status peça garantia",
         "Recebimento UPC",
-        "Modelo Principal",
     ]
     df = df[colunas]
 
     # Inicializar inventário na sessão
     if "inventario" not in st.session_state:
-        st.session_state["inventario"] = pd.DataFrame(columns=colunas)
+        st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
     # Campo de entrada do ID
     id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
+
+    # Seleção da categoria
+    categoria = st.radio("Selecione a categoria:", ["IN HOME", "LABORATÓRIO"])
 
     # Pesquisa automática: sempre que o campo tiver 6 dígitos
     if id_usuario and len(id_usuario) == 6 and id_usuario.isdigit():
@@ -56,6 +59,9 @@ if arquivo_excel:
         if not resultado.empty:
             st.write("### Resultado encontrado:")
             st.write(resultado)
+
+            # Adicionar categoria ao resultado
+            resultado["Categoria"] = categoria
 
             # Adicionar ao inventário acumulado
             st.session_state["inventario"] = pd.concat(
@@ -81,6 +87,18 @@ if arquivo_excel:
     if not st.session_state["inventario"].empty:
         st.write("## Inventário acumulado")
         st.write(st.session_state["inventario"])
+
+        # Botão para deletar um item do inventário
+        id_delete = st.text_input("Digite o ID para deletar do inventário:", value="", max_chars=6)
+        if id_delete and len(id_delete) == 6 and id_delete.isdigit():
+            id_delete = int(id_delete)
+            if id_delete in st.session_state["inventario"]["ID"].values:
+                st.session_state["inventario"] = st.session_state["inventario"][
+                    st.session_state["inventario"]["ID"] != id_delete
+                ]
+                st.success(f"ID {id_delete} removido do inventário.")
+            else:
+                st.warning("ID não encontrado no inventário.")
 
         # Botão para baixar inventário completo em Excel
         inventario_excel = "inventario_completo.xlsx"
