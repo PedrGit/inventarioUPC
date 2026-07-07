@@ -35,6 +35,7 @@ if arquivo_excel:
         "Referência Uso",
         "OS Fabricante",
         "Status garantia",
+        "Status peça garantia",
         "Recebimento UPC",
         "Modelo Principal",
     ]
