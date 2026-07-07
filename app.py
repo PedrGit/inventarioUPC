@@ -17,7 +17,7 @@ def gerar_pdf(dados, id_usuario):
     c.save()
     return nome_arquivo
 
-# Interface Streamlit
+# Configuração da página
 st.set_page_config(page_title="Inventário Automático", layout="wide")
 st.title("📦 Inventário Automático de Planilha Excel")
 
@@ -26,23 +26,23 @@ arquivo_excel = st.file_uploader("📂 Selecione a planilha Excel", type=["xlsx"
 
 if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
-    df.columns = df.columns.str.strip()  # remove espaços extras
+    df.columns = df.columns.str.strip()
 
     # Colunas desejadas
     colunas = [
         "ID",
         "Código",
         "Descrição",
-        "Modelo Principal",
         "Referência Uso",
         "OS Fabricante",
         "Status garantia",
         "Status peça garantia",
         "Recebimento UPC",
+        "Modelo Principal",
     ]
-    df = df[colunas]
+    df = df[colunas].set_index("ID")  # otimização: ID como índice
 
-    # Inicializar inventário na sessão
+    # Inicializar inventário
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
@@ -51,20 +51,17 @@ if arquivo_excel:
 
     with col1:
         st.subheader("🔍 Pesquisa")
-        id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
+        id_usuario = st.text_input("Digite o ID (6 dígitos):", key="id_usuario", max_chars=6)
         categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"])
 
-        # Pesquisa automática
-        if id_usuario and len(id_usuario) == 6 and id_usuario.isdigit():
-            id_usuario = int(id_usuario)
-            resultado = df[df["ID"] == id_usuario]
+        # Busca automática e rápida
+        if len(id_usuario) == 6 and id_usuario.isdigit():
+            try:
+                resultado = df.loc[[int(id_usuario)]].copy()
+                resultado["Categoria"] = categoria
 
-            if not resultado.empty:
                 st.success(f"✅ ID {id_usuario} encontrado!")
                 st.write(resultado)
-
-                # Adicionar categoria
-                resultado["Categoria"] = categoria
 
                 # Adicionar ao inventário acumulado
                 st.session_state["inventario"] = pd.concat(
@@ -83,7 +80,7 @@ if arquivo_excel:
                 with open(nome_pdf, "rb") as f:
                     st.download_button("⬇️ Baixar PDF", f, file_name=nome_pdf)
 
-            else:
+            except KeyError:
                 st.error("❌ ID não encontrado.")
 
     with col2:
@@ -103,9 +100,9 @@ if arquivo_excel:
                     st.session_state["inventario"]["Categoria"] == "LABORATÓRIO"
                 ])
 
-            # Opção de deletar um item
-            id_delete = st.text_input("🗑️ Digite o ID para deletar:", value="", max_chars=6)
-            if id_delete and len(id_delete) == 6 and id_delete.isdigit():
+            # Deletar apenas um item
+            id_delete = st.text_input("🗑️ Digite o ID para deletar:", key="delete_id", max_chars=6)
+            if len(id_delete) == 6 and id_delete.isdigit():
                 id_delete = int(id_delete)
                 if id_delete in st.session_state["inventario"]["ID"].values:
                     st.session_state["inventario"] = st.session_state["inventario"][
@@ -115,12 +112,12 @@ if arquivo_excel:
                 else:
                     st.warning("ID não encontrado no inventário.")
 
-            # Botão para deletar todo o inventário
+            # Deletar todo o inventário
             if st.button("🗑️ Deletar Inventário Completo"):
                 st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
                 st.success("Inventário completo deletado.")
 
-            # Botão para baixar inventário completo em Excel (separado por abas)
+            # Baixar inventário completo em Excel (separado por abas)
             inventario_excel = "inventario_completo.xlsx"
             inventario_inhome = st.session_state["inventario"][
                 st.session_state["inventario"]["Categoria"] == "IN HOME"
