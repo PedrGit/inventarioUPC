@@ -46,19 +46,13 @@ if arquivo_excel:
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
-    # Layout em duas colunas
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.subheader("🔍 Pesquisa")
-        id_usuario = st.text_input("Digite o ID (6 dígitos):", key="id_usuario", max_chars=6)
-        categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"])
-
-        # Busca automática e rápida
+    # Função de busca automática
+    def buscar_id():
+        id_usuario = st.session_state["id_usuario"]
         if len(id_usuario) == 6 and id_usuario.isdigit():
             try:
                 resultado = df.loc[[int(id_usuario)]].copy()
-                resultado["Categoria"] = categoria
+                resultado["Categoria"] = st.session_state["categoria"]
 
                 st.success(f"✅ ID {id_usuario} encontrado!")
                 st.write(resultado)
@@ -82,6 +76,14 @@ if arquivo_excel:
 
             except KeyError:
                 st.error("❌ ID não encontrado.")
+
+    # Layout em duas colunas
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("🔍 Pesquisa")
+        st.text_input("Digite o ID (6 dígitos):", key="id_usuario", max_chars=6, on_change=buscar_id)
+        st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
 
     with col2:
         st.subheader("📊 Inventário acumulado")
