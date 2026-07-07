@@ -18,57 +18,48 @@ def gerar_pdf(dados, id_usuario):
     return nome_arquivo
 
 # Interface Streamlit
-st.title("Consulta de Planilha Excel")
+st.title("Consulta Automática de Planilha Excel")
 
 # Upload da planilha
-arquivo_excel = st.file_uploader("Selecione a planilha Excel", type=["xlsx"])
+arquivo_excel = st.file_uploader("Selecione a planilha Excel", type=["xlsx", "xls"])
 
 if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
+    df.columns = df.columns.str.strip()  # remove espaços extras
 
-    # Selecionar colunas desejadas
+    # Selecionar apenas as colunas desejadas
     colunas = [
-    "ID",
-    "Descrição",
-    "Custo",
-    "Modelo Principal",
-    "Status garantia",
-    "Número NF",
-    "Garantia",
-    "Data Emissão",
-    "Data Entrega",
-    "Data Saída",
-    "Observação"
-]
+        "ID", "Descrição", "Custo", "Modelo Principal",
+        "Status garantia", "Número NF", "Garantia",
+        "Data Emissão", "Data Entrega", "Data Saída", "Observação"
+    ]
+    df = df[colunas]
 
-    df.columns = df.columns.str.strip()
+    # Campo de entrada do ID
+    id_usuario = st.text_input("Digite o ID (6 dígitos):")
 
-    # Entrada do ID
-    id_usuario = st.text_input("Digite o ID:")
+    # Pesquisa automática quando o ID tem 6 dígitos
+    if len(id_usuario) == 6 and id_usuario.isdigit():
+        id_usuario = int(id_usuario)
+        resultado = df[df["ID"] == id_usuario]
 
-    if st.button("Pesquisar"):
-        if id_usuario:
-            try:
-                id_usuario = int(id_usuario)
-                resultado = df[df["ID"] == id_usuario]
+        if not resultado.empty:
+            st.write("### Resultado encontrado:")
+            st.write(resultado)
 
-                if not resultado.empty:
-                    st.write("### Resultado encontrado:")
-                    st.write(resultado)
+            # Exportar Excel
+            nome_excel = f"resultado_{id_usuario}.xlsx"
+            resultado.to_excel(nome_excel, index=False)
+            with open(nome_excel, "rb") as f:
+                st.download_button("Baixar Excel", f, file_name=nome_excel)
 
-                    # Exportar Excel
-                    nome_excel = f"resultado_{id_usuario}.xlsx"
-                    resultado.to_excel(nome_excel, index=False)
-                    with open(nome_excel, "rb") as f:
-                        st.download_button("Baixar Excel", f, file_name=nome_excel)
+            # Exportar PDF
+            dados = resultado.iloc[0].to_dict()
+            nome_pdf = gerar_pdf(dados, id_usuario)
+            with open(nome_pdf, "rb") as f:
+                st.download_button("Baixar PDF", f, file_name=nome_pdf)
 
-                    # Exportar PDF
-                    dados = resultado.iloc[0].to_dict()
-                    nome_pdf = gerar_pdf(dados, id_usuario)
-                    with open(nome_pdf, "rb") as f:
-                        st.download_button("Baixar PDF", f, file_name=nome_pdf)
-
-                else:
-                    st.error("ID não encontrado.")
-            except ValueError:
-                st.error("O ID deve ser numérico.")
+            # Limpar campo após pesquisa
+            st.experimental_rerun()
+        else:
+            st.error("ID não encontrado.")
