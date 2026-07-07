@@ -1,21 +1,6 @@
 import pandas as pd
 import streamlit as st
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 
-# Função para gerar PDF individual
-def gerar_pdf(dados, id_usuario):
-    nome_arquivo = f"resultado_{id_usuario}.pdf"
-    c = canvas.Canvas(nome_arquivo, pagesize=letter)
-    c.drawString(100, 750, f"Resultados para ID: {id_usuario}")
-    y = 700
-    for coluna, valor in dados.items():
-        c.drawString(100, y, f"{coluna}: {valor}")
-        y -= 20
-    c.save()
-    return nome_arquivo
-
-# Configuração da página
 st.set_page_config(page_title="Inventário Automático", layout="wide")
 st.title("📦 Inventário Automático de Planilha Excel")
 
@@ -26,7 +11,6 @@ if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
     df.columns = df.columns.str.strip()
 
-    # Colunas desejadas
     colunas = [
         "ID",
         "Código",
@@ -38,13 +22,11 @@ if arquivo_excel:
         "Recebimento UPC",
         "Modelo Principal",
     ]
-    df = df[colunas]
+    df = df[colunas].set_index("ID")  # índice otimizado
 
-    # Inicializar inventário
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
-    # Layout em duas colunas
     col1, col2 = st.columns([1, 2])
 
     with col1:
@@ -52,25 +34,30 @@ if arquivo_excel:
         id_usuario = st.text_input("Digite o ID (6 dígitos):", key="id_usuario", max_chars=6)
         categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
 
-        # Busca automática e persistente
+        # Busca rápida
         if len(id_usuario) == 6 and id_usuario.isdigit():
-            resultado = df[df["ID"] == int(id_usuario)].copy()
-            if not resultado.empty:
+            try:
+                resultado = df.loc[[int(id_usuario)]].copy()
                 resultado["Categoria"] = categoria
-                # Adiciona sem sobrescrever
+
+                # Adiciona ao inventário acumulado
                 st.session_state["inventario"] = pd.concat(
                     [st.session_state["inventario"], resultado],
                     ignore_index=True
                 ).drop_duplicates(subset=["ID"], keep="last")
+
                 st.success(f"✅ ID {id_usuario} adicionado ao inventário.")
-            else:
+
+                # Limpa o campo automaticamente
+                st.session_state["id_usuario"] = ""
+
+            except KeyError:
                 st.error("❌ ID não encontrado.")
 
     with col2:
         st.subheader("📊 Inventário acumulado")
 
         if not st.session_state["inventario"].empty:
-            # Abas para categorias
             aba = st.tabs(["IN HOME", "LABORATÓRIO"])
 
             with aba[0]:
