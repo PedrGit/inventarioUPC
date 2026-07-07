@@ -54,25 +54,10 @@ if arquivo_excel:
                 resultado = df.loc[[int(id_usuario)]].copy()
                 resultado["Categoria"] = st.session_state["categoria"]
 
-                st.success(f"✅ ID {id_usuario} encontrado!")
-                st.write(resultado)
-
-                # Adicionar ao inventário acumulado
+                # Adicionar ao inventário acumulado (sem sobrescrever)
                 st.session_state["inventario"] = pd.concat(
                     [st.session_state["inventario"], resultado]
-                ).drop_duplicates(subset=["ID"])
-
-                # Exportar Excel individual
-                nome_excel = f"resultado_{id_usuario}.xlsx"
-                resultado.to_excel(nome_excel, index=False)
-                with open(nome_excel, "rb") as f:
-                    st.download_button("⬇️ Baixar Excel", f, file_name=nome_excel)
-
-                # Exportar PDF individual
-                dados = resultado.iloc[0].to_dict()
-                nome_pdf = gerar_pdf(dados, id_usuario)
-                with open(nome_pdf, "rb") as f:
-                    st.download_button("⬇️ Baixar PDF", f, file_name=nome_pdf)
+                ).drop_duplicates(subset=["ID"], keep="last")
 
             except KeyError:
                 st.error("❌ ID não encontrado.")
