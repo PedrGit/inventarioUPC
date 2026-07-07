@@ -29,22 +29,22 @@ if arquivo_excel:
 
     # Selecionar apenas as colunas desejadas
     colunas = [
-    "ID",
-    "Status garantia",
-    "Recebimento UPC",
-    "Código",
-    "Descrição",
-    "Modelo Principal",
-    "Referência Uso",
-    "OS Fabricante",
+        "ID",
+        "Código",
+        "Descrição",
+        "Referência Uso",
+        "OS Fabricante",
+        "Status garantia",
+        "Recebimento UPC",
+        "Modelo Principal",
     ]
     df = df[colunas]
 
     # Campo de entrada do ID
-    id_usuario = st.text_input("Digite o ID (6 dígitos):")
+    id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
 
-    # Pesquisa automática quando o ID tem 6 dígitos
-    if len(id_usuario) == 6 and id_usuario.isdigit():
+    # Pesquisa automática: sempre que o campo tiver 6 dígitos
+    if id_usuario and len(id_usuario) == 6 and id_usuario.isdigit():
         id_usuario = int(id_usuario)
         resultado = df[df["ID"] == id_usuario]
 
@@ -64,7 +64,5 @@ if arquivo_excel:
             with open(nome_pdf, "rb") as f:
                 st.download_button("Baixar PDF", f, file_name=nome_pdf)
 
-            # Limpar campo após pesquisa
-            st.experimental_rerun()
         else:
             st.error("ID não encontrado.")
