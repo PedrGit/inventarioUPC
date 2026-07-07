@@ -41,7 +41,7 @@ if arquivo_excel:
     "Observação"
 ]
 
-    df = df[colunas]
+   df.columns = df.columns.str.strip()
 
     # Entrada do ID
     id_usuario = st.text_input("Digite o ID:")
