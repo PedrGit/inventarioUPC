@@ -38,6 +38,7 @@ if arquivo_excel:
         "Status garantia",
         "Status peça garantia",
         "Recebimento UPC",
+        
     ]
     df = df[colunas]
 
@@ -101,7 +102,19 @@ if arquivo_excel:
         st.write("### LABORATÓRIO")
         st.write(inventario_lab)
 
-        # Botão para deletar toda a planilha acumulada
+        # Botão para deletar apenas um item
+        id_delete = st.text_input("Digite o ID para deletar do inventário:", value="", max_chars=6)
+        if id_delete and len(id_delete) == 6 and id_delete.isdigit():
+            id_delete = int(id_delete)
+            if id_delete in st.session_state["inventario"]["ID"].values:
+                st.session_state["inventario"] = st.session_state["inventario"][
+                    st.session_state["inventario"]["ID"] != id_delete
+                ]
+                st.success(f"ID {id_delete} removido do inventário.")
+            else:
+                st.warning("ID não encontrado no inventário.")
+
+        # Botão para deletar todo o inventário
         if st.button("Deletar Inventário Completo"):
             st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
             st.success("Inventário completo deletado.")
