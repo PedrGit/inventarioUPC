@@ -18,7 +18,7 @@ def gerar_pdf(dados, id_usuario):
     return nome_arquivo
 
 # Interface Streamlit
-st.title("Consulta Automática de Planilha Excel")
+st.title("Inventário Automático de Planilha Excel")
 
 # Upload da planilha
 arquivo_excel = st.file_uploader("Selecione a planilha Excel", type=["xlsx", "xls"])
@@ -41,6 +41,10 @@ if arquivo_excel:
     ]
     df = df[colunas]
 
+    # Inicializar inventário na sessão
+    if "inventario" not in st.session_state:
+        st.session_state["inventario"] = pd.DataFrame(columns=colunas)
+
     # Campo de entrada do ID
     id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
 
@@ -53,13 +57,18 @@ if arquivo_excel:
             st.write("### Resultado encontrado:")
             st.write(resultado)
 
-            # Exportar Excel
+            # Adicionar ao inventário acumulado
+            st.session_state["inventario"] = pd.concat(
+                [st.session_state["inventario"], resultado]
+            ).drop_duplicates(subset=["ID"])
+
+            # Exportar Excel individual
             nome_excel = f"resultado_{id_usuario}.xlsx"
             resultado.to_excel(nome_excel, index=False)
             with open(nome_excel, "rb") as f:
                 st.download_button("Baixar Excel", f, file_name=nome_excel)
 
-            # Exportar PDF
+            # Exportar PDF individual
             dados = resultado.iloc[0].to_dict()
             nome_pdf = gerar_pdf(dados, id_usuario)
             with open(nome_pdf, "rb") as f:
@@ -67,3 +76,14 @@ if arquivo_excel:
 
         else:
             st.error("ID não encontrado.")
+
+    # Mostrar inventário acumulado
+    if not st.session_state["inventario"].empty:
+        st.write("## Inventário acumulado")
+        st.write(st.session_state["inventario"])
+
+        # Botão para baixar inventário completo em Excel
+        inventario_excel = "inventario_completo.xlsx"
+        st.session_state["inventario"].to_excel(inventario_excel, index=False)
+        with open(inventario_excel, "rb") as f:
+            st.download_button("Baixar Inventário Excel", f, file_name=inventario_excel)
