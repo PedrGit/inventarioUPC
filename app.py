@@ -29,9 +29,14 @@ if arquivo_excel:
 
     # Selecionar apenas as colunas desejadas
     colunas = [
-        "ID", "Descrição", "Custo", "Modelo Principal",
-        "Status garantia", "Número NF", "Garantia",
-        "Data Emissão", "Data Entrega", "Data Saída", "Observação"
+    "ID",
+    "Status garantia",
+    "Recebimento UPC",
+    "Código",
+    "Descrição",
+    "Modelo Principal",
+    "Referência Uso",
+    "OS Fabricante",
     ]
     df = df[colunas]
 
