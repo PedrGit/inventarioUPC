@@ -27,9 +27,20 @@ if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
 
     # Selecionar colunas desejadas
-    colunas = ["ID", "Descrição", "Custo", "Modelo Principal", 
-               "Status garantia", "Número NF", "Garantia", 
-               "Data Emissão", "Data Entrega", "Data Saída", "Observação"]
+    colunas = [
+    "ID",
+    "Descrição",
+    "Custo",
+    "Modelo Principal",
+    "Status garantia",
+    "Número NF",
+    "Garantia",
+    "Data Emissão",
+    "Data Entrega",
+    "Data Saída",
+    "Observação"
+]
+
     df = df[colunas]
 
     # Entrada do ID
