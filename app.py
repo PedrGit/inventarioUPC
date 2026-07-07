@@ -18,10 +18,11 @@ def gerar_pdf(dados, id_usuario):
     return nome_arquivo
 
 # Interface Streamlit
-st.title("Inventário Automático de Planilha Excel")
+st.set_page_config(page_title="Inventário Automático", layout="wide")
+st.title("📦 Inventário Automático de Planilha Excel")
 
 # Upload da planilha
-arquivo_excel = st.file_uploader("Selecione a planilha Excel", type=["xlsx", "xls"])
+arquivo_excel = st.file_uploader("📂 Selecione a planilha Excel", type=["xlsx", "xls"])
 
 if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
@@ -38,7 +39,6 @@ if arquivo_excel:
         "Status garantia",
         "Status peça garantia",
         "Recebimento UPC",
-        
     ]
     df = df[colunas]
 
@@ -46,84 +46,92 @@ if arquivo_excel:
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
-    # Campo de entrada do ID
-    id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
+    # Layout em duas colunas
+    col1, col2 = st.columns([1, 2])
 
-    # Seleção da categoria
-    categoria = st.radio("Selecione a categoria:", ["IN HOME", "LABORATÓRIO"])
+    with col1:
+        st.subheader("🔍 Pesquisa")
+        id_usuario = st.text_input("Digite o ID (6 dígitos):", value="", max_chars=6)
+        categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"])
 
-    # Pesquisa automática
-    if id_usuario and len(id_usuario) == 6 and id_usuario.isdigit():
-        id_usuario = int(id_usuario)
-        resultado = df[df["ID"] == id_usuario]
+        # Pesquisa automática
+        if id_usuario and len(id_usuario) == 6 and id_usuario.isdigit():
+            id_usuario = int(id_usuario)
+            resultado = df[df["ID"] == id_usuario]
 
-        if not resultado.empty:
-            st.write("### Resultado encontrado:")
-            st.write(resultado)
+            if not resultado.empty:
+                st.success(f"✅ ID {id_usuario} encontrado!")
+                st.write(resultado)
 
-            # Adicionar categoria
-            resultado["Categoria"] = categoria
+                # Adicionar categoria
+                resultado["Categoria"] = categoria
 
-            # Adicionar ao inventário acumulado
-            st.session_state["inventario"] = pd.concat(
-                [st.session_state["inventario"], resultado]
-            ).drop_duplicates(subset=["ID"])
+                # Adicionar ao inventário acumulado
+                st.session_state["inventario"] = pd.concat(
+                    [st.session_state["inventario"], resultado]
+                ).drop_duplicates(subset=["ID"])
 
-            # Exportar Excel individual
-            nome_excel = f"resultado_{id_usuario}.xlsx"
-            resultado.to_excel(nome_excel, index=False)
-            with open(nome_excel, "rb") as f:
-                st.download_button("Baixar Excel", f, file_name=nome_excel)
+                # Exportar Excel individual
+                nome_excel = f"resultado_{id_usuario}.xlsx"
+                resultado.to_excel(nome_excel, index=False)
+                with open(nome_excel, "rb") as f:
+                    st.download_button("⬇️ Baixar Excel", f, file_name=nome_excel)
 
-            # Exportar PDF individual
-            dados = resultado.iloc[0].to_dict()
-            nome_pdf = gerar_pdf(dados, id_usuario)
-            with open(nome_pdf, "rb") as f:
-                st.download_button("Baixar PDF", f, file_name=nome_pdf)
+                # Exportar PDF individual
+                dados = resultado.iloc[0].to_dict()
+                nome_pdf = gerar_pdf(dados, id_usuario)
+                with open(nome_pdf, "rb") as f:
+                    st.download_button("⬇️ Baixar PDF", f, file_name=nome_pdf)
 
-        else:
-            st.error("ID não encontrado.")
-
-    # Mostrar inventário acumulado
-    if not st.session_state["inventario"].empty:
-        st.write("## Inventário acumulado")
-
-        # Visualização separada por categoria
-        inventario_inhome = st.session_state["inventario"][
-            st.session_state["inventario"]["Categoria"] == "IN HOME"
-        ]
-        inventario_lab = st.session_state["inventario"][
-            st.session_state["inventario"]["Categoria"] == "LABORATÓRIO"
-        ]
-
-        st.write("### IN HOME")
-        st.write(inventario_inhome)
-
-        st.write("### LABORATÓRIO")
-        st.write(inventario_lab)
-
-        # Botão para deletar apenas um item
-        id_delete = st.text_input("Digite o ID para deletar do inventário:", value="", max_chars=6)
-        if id_delete and len(id_delete) == 6 and id_delete.isdigit():
-            id_delete = int(id_delete)
-            if id_delete in st.session_state["inventario"]["ID"].values:
-                st.session_state["inventario"] = st.session_state["inventario"][
-                    st.session_state["inventario"]["ID"] != id_delete
-                ]
-                st.success(f"ID {id_delete} removido do inventário.")
             else:
-                st.warning("ID não encontrado no inventário.")
+                st.error("❌ ID não encontrado.")
 
-        # Botão para deletar todo o inventário
-        if st.button("Deletar Inventário Completo"):
-            st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
-            st.success("Inventário completo deletado.")
+    with col2:
+        st.subheader("📊 Inventário acumulado")
 
-        # Botão para baixar inventário completo em Excel (separado por abas)
-        inventario_excel = "inventario_completo.xlsx"
-        with pd.ExcelWriter(inventario_excel) as writer:
-            inventario_inhome.to_excel(writer, sheet_name="IN HOME", index=False)
-            inventario_lab.to_excel(writer, sheet_name="LABORATÓRIO", index=False)
+        if not st.session_state["inventario"].empty:
+            # Abas para categorias
+            aba = st.tabs(["IN HOME", "LABORATÓRIO"])
 
-        with open(inventario_excel, "rb") as f:
-            st.download_button("Baixar Inventário Completo", f, file_name=inventario_excel)
+            with aba[0]:
+                st.write(st.session_state["inventario"][
+                    st.session_state["inventario"]["Categoria"] == "IN HOME"
+                ])
+
+            with aba[1]:
+                st.write(st.session_state["inventario"][
+                    st.session_state["inventario"]["Categoria"] == "LABORATÓRIO"
+                ])
+
+            # Opção de deletar um item
+            id_delete = st.text_input("🗑️ Digite o ID para deletar:", value="", max_chars=6)
+            if id_delete and len(id_delete) == 6 and id_delete.isdigit():
+                id_delete = int(id_delete)
+                if id_delete in st.session_state["inventario"]["ID"].values:
+                    st.session_state["inventario"] = st.session_state["inventario"][
+                        st.session_state["inventario"]["ID"] != id_delete
+                    ]
+                    st.success(f"ID {id_delete} removido do inventário.")
+                else:
+                    st.warning("ID não encontrado no inventário.")
+
+            # Botão para deletar todo o inventário
+            if st.button("🗑️ Deletar Inventário Completo"):
+                st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
+                st.success("Inventário completo deletado.")
+
+            # Botão para baixar inventário completo em Excel (separado por abas)
+            inventario_excel = "inventario_completo.xlsx"
+            inventario_inhome = st.session_state["inventario"][
+                st.session_state["inventario"]["Categoria"] == "IN HOME"
+            ]
+            inventario_lab = st.session_state["inventario"][
+                st.session_state["inventario"]["Categoria"] == "LABORATÓRIO"
+            ]
+
+            with pd.ExcelWriter(inventario_excel) as writer:
+                inventario_inhome.to_excel(writer, sheet_name="IN HOME", index=False)
+                inventario_lab.to_excel(writer, sheet_name="LABORATÓRIO", index=False)
+
+            with open(inventario_excel, "rb") as f:
+                st.download_button("⬇️ Baixar Inventário Completo", f, file_name=inventario_excel)
