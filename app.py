@@ -64,7 +64,15 @@ if arquivo_excel:
                 ]
                 st.dataframe(inventario_lab, use_container_width=True)
 
-            id_delete = st.text_input("🗑️ Digite o ID para deletar:", key="delete_id", max_chars=6)
-            if len(id_delete) == 6 and id_delete.isdigit():
-                id_delete = int(id_delete)
-             if id_delete in st.session_state:
+            # Deletar apenas um item
+              id_delete = st.text_input("🗑️ Digite o ID para deletar:", key="delete_id", max_chars=6)
+              if len(id_delete) == 6 and id_delete.isdigit():
+                 id_delete = int(id_delete)
+                 if id_delete in st.session_state["inventario"]["ID"].values:
+                    st.session_state["inventario"] = st.session_state["inventario"][
+                        st.session_state["inventario"]["ID"] != id_delete
+                    ]
+                    st.success(f"ID {id_delete} removido do inventário.")
+                else:
+                    st.warning("ID não encontrado no inventário.")
+
