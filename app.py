@@ -27,7 +27,9 @@ if arquivo_excel:
         "ID", "Código", "Descrição", "Referência Uso", "OS Fabricante",
         "Status garantia", "Status peça garantia", "Recebimento UPC", "Modelo Principal",
     ]
-    df = df[colunas].set_index("ID")
+
+    # NÃO usar set_index — mantém ID como coluna visível
+    df = df[colunas]
 
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
@@ -44,11 +46,11 @@ if arquivo_excel:
             encontrados = []
 
             for i in ids_lista:
-                try:
-                    resultado = df.loc[[int(i)]].copy()
+                resultado = df[df["ID"] == int(i)].copy()
+                if not resultado.empty:
                     resultado["Categoria"] = categoria
                     encontrados.append(resultado)
-                except KeyError:
+                else:
                     st.warning(f"❌ ID {i} não encontrado.")
 
             if encontrados:
