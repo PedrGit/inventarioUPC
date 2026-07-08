@@ -32,42 +32,32 @@ if arquivo_excel:
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
-    def buscar_ids():
-        ids_input = st.session_state["ids_input"]
-        categoria = st.session_state["categoria"]
-
-        ids_lista = [i.strip() for i in ids_input.replace(",", " ").split() if i.strip().isdigit()]
-        encontrados = []
-
-        for i in ids_lista:
-            try:
-                resultado = df.loc[[int(i)]].copy()
-                resultado["Categoria"] = categoria
-                encontrados.append(resultado)
-            except KeyError:
-                st.warning(f"❌ ID {i} não encontrado.")
-
-        if encontrados:
-            resultados = pd.concat(encontrados)
-            st.session_state["inventario"] = pd.concat(
-                [st.session_state["inventario"], resultados],
-                ignore_index=True
-            ).drop_duplicates(subset=["ID"], keep="last")
-            st.success(f"✅ {len(resultados)} IDs adicionados ao inventário.")
-
-        # só limpa o campo depois de processar todos
-        st.session_state["ids_input"] = ""
-
     col1, col2 = st.columns([1, 2])
 
     with col1:
         st.subheader("🔍 Pesquisa")
-        st.text_area(
-            "Digite os IDs (separados por vírgula ou espaço):",
-            key="ids_input",
-            on_change=buscar_ids
-        )
-        st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
+        ids_input = st.text_area("Digite os IDs (separados por vírgula ou espaço):")
+        categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
+
+        if st.button("Adicionar IDs"):
+            ids_lista = [i.strip() for i in ids_input.replace(",", " ").split() if i.strip().isdigit()]
+            encontrados = []
+
+            for i in ids_lista:
+                try:
+                    resultado = df.loc[[int(i)]].copy()
+                    resultado["Categoria"] = categoria
+                    encontrados.append(resultado)
+                except KeyError:
+                    st.warning(f"❌ ID {i} não encontrado.")
+
+            if encontrados:
+                resultados = pd.concat(encontrados)
+                st.session_state["inventario"] = pd.concat(
+                    [st.session_state["inventario"], resultados],
+                    ignore_index=True
+                ).drop_duplicates(subset=["ID"], keep="last")
+                st.success(f"✅ {len(resultados)} IDs adicionados ao inventário.")
 
     with col2:
         st.subheader("📊 Inventário acumulado")
