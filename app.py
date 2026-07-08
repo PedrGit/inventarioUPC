@@ -38,39 +38,55 @@ if arquivo_excel:
         "Recebimento UPC",
         "Modelo Principal",
     ]
-    df = df[colunas]
+    df = df[colunas].set_index("ID")  # índice otimizado para busca rápida
 
     # Inicializar inventário
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
+
+    # Função de busca segura
+    def buscar_ids():
+        ids_input = st.session_state["ids_input"]
+        categoria = st.session_state["categoria"]
+
+        # Processa múltiplos IDs separados por vírgula ou espaço
+        ids_lista = [i.strip() for i in ids_input.replace(",", " ").split() if i.strip().isdigit()]
+        encontrados = []
+
+        for i in ids_lista:
+            try:
+                resultado = df.loc[[int(i)]].copy()
+                resultado["Categoria"] = categoria
+                encontrados.append(resultado)
+            except KeyError:
+                st.warning(f"❌ ID {i} não encontrado.")
+
+        if encontrados:
+            resultados = pd.concat(encontrados)
+            st.session_state["inventario"] = pd.concat(
+                [st.session_state["inventario"], resultados],
+                ignore_index=True
+            ).drop_duplicates(subset=["ID"], keep="last")
+
+            st.success(f"✅ {len(resultados)} IDs adicionados ao inventário.")
+            st.session_state["ids_input"] = ""  # limpa campo após pesquisa
 
     # Layout em duas colunas
     col1, col2 = st.columns([1, 2])
 
     with col1:
         st.subheader("🔍 Pesquisa")
-        id_usuario = st.text_input("Digite o ID (6 dígitos):", key="id_usuario", max_chars=6)
-        categoria = st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
-
-        # Busca automática e persistente
-        if len(id_usuario) == 6 and id_usuario.isdigit():
-            resultado = df[df["ID"] == int(id_usuario)].copy()
-            if not resultado.empty:
-                resultado["Categoria"] = categoria
-                # Adiciona sem sobrescrever
-                st.session_state["inventario"] = pd.concat(
-                    [st.session_state["inventario"], resultado],
-                    ignore_index=True
-                ).drop_duplicates(subset=["ID"], keep="last")
-                st.success(f"✅ ID {id_usuario} adicionado ao inventário.")
-            else:
-                st.error("❌ ID não encontrado.")
+        st.text_area(
+            "Digite os IDs (separados por vírgula ou espaço):",
+            key="ids_input",
+            on_change=buscar_ids
+        )
+        st.radio("Categoria:", ["IN HOME", "LABORATÓRIO"], key="categoria")
 
     with col2:
         st.subheader("📊 Inventário acumulado")
 
         if not st.session_state["inventario"].empty:
-            # Abas para categorias
             aba = st.tabs(["IN HOME", "LABORATÓRIO"])
 
             with aba[0]:
