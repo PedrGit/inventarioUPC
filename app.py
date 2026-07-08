@@ -3,7 +3,6 @@ import streamlit as st
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-# Função para gerar PDF individual
 def gerar_pdf(dados, id_usuario):
     nome_arquivo = f"resultado_{id_usuario}.pdf"
     c = canvas.Canvas(nome_arquivo, pagesize=letter)
@@ -15,41 +14,28 @@ def gerar_pdf(dados, id_usuario):
     c.save()
     return nome_arquivo
 
-# Configuração da página
 st.set_page_config(page_title="Inventário Automático", layout="wide")
 st.title("📦 Inventário Automático de Planilha Excel")
 
-# Upload da planilha
 arquivo_excel = st.file_uploader("📂 Selecione a planilha Excel", type=["xlsx", "xls"])
 
 if arquivo_excel:
     df = pd.read_excel(arquivo_excel)
     df.columns = df.columns.str.strip()
 
-    # Colunas desejadas
     colunas = [
-        "ID",
-        "Código",
-        "Descrição",
-        "Referência Uso",
-        "OS Fabricante",
-        "Status garantia",
-        "Status peça garantia",
-        "Recebimento UPC",
-        "Modelo Principal",
+        "ID", "Código", "Descrição", "Referência Uso", "OS Fabricante",
+        "Status garantia", "Status peça garantia", "Recebimento UPC", "Modelo Principal",
     ]
-    df = df[colunas].set_index("ID")  # índice otimizado para busca rápida
+    df = df[colunas].set_index("ID")
 
-    # Inicializar inventário
     if "inventario" not in st.session_state:
         st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
 
-    # Função de busca segura
     def buscar_ids():
         ids_input = st.session_state["ids_input"]
         categoria = st.session_state["categoria"]
 
-        # Processa múltiplos IDs separados por vírgula ou espaço
         ids_lista = [i.strip() for i in ids_input.replace(",", " ").split() if i.strip().isdigit()]
         encontrados = []
 
@@ -67,11 +53,11 @@ if arquivo_excel:
                 [st.session_state["inventario"], resultados],
                 ignore_index=True
             ).drop_duplicates(subset=["ID"], keep="last")
-
             st.success(f"✅ {len(resultados)} IDs adicionados ao inventário.")
-            st.session_state["ids_input"] = ""  # limpa campo após pesquisa
 
-    # Layout em duas colunas
+        # só limpa o campo depois de processar todos
+        st.session_state["ids_input"] = ""
+
     col1, col2 = st.columns([1, 2])
 
     with col1:
@@ -101,7 +87,6 @@ if arquivo_excel:
                 ]
                 st.dataframe(inventario_lab, use_container_width=True)
 
-            # Deletar apenas um item
             id_delete = st.text_input("🗑️ Digite o ID para deletar:", key="delete_id", max_chars=6)
             if len(id_delete) == 6 and id_delete.isdigit():
                 id_delete = int(id_delete)
@@ -113,12 +98,10 @@ if arquivo_excel:
                 else:
                     st.warning("ID não encontrado no inventário.")
 
-            # Deletar todo o inventário
             if st.button("🗑️ Deletar Inventário Completo"):
                 st.session_state["inventario"] = pd.DataFrame(columns=colunas + ["Categoria"])
                 st.success("Inventário completo deletado.")
 
-            # Baixar inventário completo em Excel (separado por abas)
             inventario_excel = "inventario_completo.xlsx"
             with pd.ExcelWriter(inventario_excel) as writer:
                 inventario_inhome.to_excel(writer, sheet_name="IN HOME", index=False)
